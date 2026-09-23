@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오늘의 별자리 운세 - Celestial Fortune</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Serif KR, Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Serif+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        burgundy: {
+                            900: '#1A0307',
+                            800: '#2C050B',
+                            700: '#4A0E17',
+                            600: '#631422',
+                            500: '#7A1C2B',
+                            400: '#A3283E',
+                        },
+                        gold: {
+                            light: '#F5E6AD',
+                            DEFAULT: '#D4AF37',
+                            dark: '#AA820A',
+                            glow: 'rgba(212, 175, 55, 0.4)'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif KR"', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #1A0307;
+            color: #F5E6AD;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Starry background effect */
+        .stars-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background: radial-gradient(ellipse at bottom, #2C050B 0%, #1A0307 100%);
+        }
+
+        .star {
+            position: absolute;
+            background-color: #ffffff;
+            border-radius: 50%;
+            animation: twinkle var(--duration, 3s) infinite ease-in-out;
+            opacity: 0.3;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 0.9; transform: scale(1.2); box-shadow: 0 0 8px #D4AF37; }
+        }
+
+        /* Card Flip Effect */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+
+        .card-inner.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+        }
+
+        /* Glowing border frame */
+        .gold-border-glow {
+            border: 1px solid #D4AF37;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.25), inset 0 0 15px rgba(212, 175, 55, 0.15);
+        }
+
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #FFF0BD 0%, #D4AF37 50%, #9A7B1C 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Toast notification */
+        #toast {
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1A0307;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #5c0d23;
+            border-radius: 4px;
+            border: 1px solid #D4AF37;
+        }
+
+        /* Modal Animation Effect */
+        @keyframes modalPopIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.92) translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .animate-modal-pop {
+            animation: modalPopIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen relative flex flex-col justify-between selection:bg-burgundy-500 selection:text-gold-light">
+
+    <div class="stars-bg" id="starsContainer"></div>
+
+    <!-- Main Container -->
+    <div class="relative z-10 max-w-6xl mx-auto px-4 py-8 md:py-12 w-full flex-grow flex flex-col items-center">
+
+        <!-- Header -->
+        <header class="text-center mb-8 md:mb-12">
+            <div class="inline-flex items-center justify-center space-x-3 mb-2">
+                <i class="fa-solid fa-moon text-gold text-2xl md:text-4xl animate-pulse"></i>
+                <h1 class="font-serif text-3xl md:text-5xl font-extrabold tracking-wider gold-gradient-text">
+                    오늘의 별자리 운세
+                </h1>
+                <i class="fa-solid fa-sun text-gold text-2xl md:text-4xl animate-pulse"></i>
+            </div>
+            <p id="currentDateText" class="text-gold-light/90 text-base md:text-lg font-light tracking-wide mt-2">
+                <!-- Date inserted via JS -->
+            </p>
+            <div class="w-40 h-0.5 mx-auto mt-4 bg-gradient-to-r from-transparent via-gold to-transparent opacity-70"></div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="w-full flex flex-col items-center flex-grow">
+
+            <!-- SECTION 1: ZODIAC GRID SELECTION -->
+            <section id="selectionSection" class="w-full transition-opacity duration-500">
+                <div class="text-center mb-8">
+                    <h2 class="font-serif text-2xl md:text-3xl text-gold-light font-bold">당신의 별자리를 선택하세요</h2>
+                    <p class="text-sm md:text-base text-gold-light/70 mt-2">오늘 신비로운 별들이 전하는 이야기를 확인해 보세요</p>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5 md:gap-6 w-full">
+                    <!-- Zodiac Cards Javascript Will Populate Here -->
+                </div>
+            </section>
+
+            <!-- SECTION 2: LARGE HIGH-VISIBILITY FORTUNE RESULT MODAL/CARD -->
+            <section id="resultSection" class="hidden w-full max-w-4xl flex-col items-center opacity-0 transition-opacity duration-300">
+                
+                <!-- Action Header Above Card -->
+                <div class="w-full flex justify-between items-center mb-5 px-1">
+                    <button id="backBtn" class="flex items-center space-x-2 text-gold-light hover:text-white transition-all text-base font-semibold py-2.5 px-5 rounded-xl bg-burgundy-800/80 border border-gold/40 hover:border-gold hover:bg-burgundy-700 shadow-md">
+                        <i class="fa-solid fa-arrow-left text-sm"></i>
+                        <span>다른 별자리 선택</span>
+                    </button>
+                    <button id="shareBtn" class="flex items-center space-x-2 text-gold-light hover:text-white transition-all text-base font-semibold py-2.5 px-5 rounded-xl bg-burgundy-800/80 border border-gold/40 hover:border-gold hover:bg-burgundy-700 shadow-md">
+                        <i class="fa-solid fa-share-nodes text-sm"></i>
+                        <span>운세 공유하기</span>
+                    </button>
+                </div>
+
+                <!-- EXPANDED LARGE RESULT DISPLAY CONTAINER -->
+                <div id="resultModalCard" class="w-full rounded-3xl bg-gradient-to-b from-[#3b0a1a] via-[#2C050B] to-[#120205] gold-border-glow p-6 sm:p-10 md:p-12 shadow-2xl relative overflow-hidden animate-modal-pop">
+                    
+                    <!-- Decorative Corner Accents -->
+                    <div class="absolute top-4 left-5 text-gold/30 text-2xl">✦</div>
+                    <div class="absolute top-4 right-5 text-gold/30 text-2xl">✦</div>
+                    <div class="absolute bottom-4 left-5 text-gold/30 text-2xl">✦</div>
+                    <div class="absolute bottom-4 right-5 text-gold/30 text-2xl">✦</div>
+
+                    <!-- 1. Header Info (Large Icon, Zodiac Name, Date, Overall Stars) -->
+                    <div class="flex flex-col md:flex-row items-center md:items-start justify-between pb-8 border-b border-gold/30 gap-6">
+                        <div class="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-5">
+                            <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-burgundy-700/60 border-2 border-gold flex items-center justify-center shadow-lg shadow-gold/10 shrink-0">
+                                <i id="resultZodiacIcon" class="fa-solid text-5xl sm:text-6xl text-gold"></i>
+                            </div>
+                            <div class="pt-1">
+                                <div class="inline-block text-xs uppercase tracking-widest text-gold/80 border border-gold/30 px-3 py-1 rounded-full bg-burgundy-900/60 mb-2">
+                                    Today's Horoscope
+                                </div>
+                                <h3 id="resultZodiacName" class="font-serif font-black text-3xl sm:text-4xl md:text-5xl text-gold-light tracking-wide mb-1">별자리</h3>
+                                <p id="resultZodiacDate" class="text-sm sm:text-base text-gold/70 font-medium">00.00 - 00.00</p>
+                            </div>
+                        </div>
+
+                        <!-- Overall Luck Badge -->
+                        <div class="bg-burgundy-900/80 border border-gold/40 rounded-2xl p-4 text-center sm:min-w-[180px] shadow-inner">
+                            <span class="text-xs text-gold/80 font-medium block mb-1">오늘의 종합 총운</span>
+                            <div id="overallStars" class="text-gold text-2xl sm:text-3xl tracking-widest my-1">
+                                ★★★★★
+                            </div>
+                            <span id="overallRatingText" class="text-sm font-bold text-gold-light block">최고의 하루</span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Highlighted Advice Box (Extra Large & Prominent) -->
+                    <div class="my-8 bg-gradient-to-r from-burgundy-700/80 via-burgundy-800/90 to-burgundy-700/80 border-l-4 border-gold p-6 sm:p-8 rounded-r-2xl shadow-lg">
+                        <div class="flex items-center space-x-2 text-gold font-bold text-base sm:text-lg mb-2">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>오늘을 위한 한 줄 조언</span>
+                        </div>
+                        <p id="oneLineAdvice" class="text-lg sm:text-2xl font-serif text-white font-bold leading-relaxed tracking-wide">
+                            "조언 메시지가 이곳에 크게 표시됩니다."
+                        </p>
+                    </div>
+
+                    <!-- 3. Detailed 4 Categories Grid (Large Cards with High Contrast) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 my-8">
+                        
+                        <!-- Love -->
+                        <div class="bg-burgundy-900/90 p-6 rounded-2xl border border-rose-500/30 hover:border-rose-400 transition-colors shadow-md">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-base sm:text-lg font-bold text-rose-300 flex items-center gap-2">
+                                    <i class="fa-solid fa-heart text-rose-400 text-xl"></i> 연애운
+                                </span>
+                                <span id="loveStars" class="text-base sm:text-lg text-gold font-bold">★★★☆☆</span>
+                            </div>
+                            <p id="loveText" class="text-sm sm:text-base text-gray-200 leading-relaxed font-normal">
+                                연애운 상세 내용이 들어가는 곳입니다.
+                            </p>
+                        </div>
+
+                        <!-- Money -->
+                        <div class="bg-burgundy-900/90 p-6 rounded-2xl border border-amber-500/30 hover:border-amber-400 transition-colors shadow-md">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-base sm:text-lg font-bold text-amber-300 flex items-center gap-2">
+                                    <i class="fa-solid fa-coins text-amber-400 text-xl"></i> 금전운
+                                </span>
+                                <span id="moneyStars" class="text-base sm:text-lg text-gold font-bold">★★★★☆</span>
+                            </div>
+                            <p id="moneyText" class="text-sm sm:text-base text-gray-200 leading-relaxed font-normal">
+                                금전운 상세 내용이 들어가는 곳입니다.
+                            </p>
+                        </div>
+
+                        <!-- Career -->
+                        <div class="bg-burgundy-900/90 p-6 rounded-2xl border border-blue-500/30 hover:border-blue-400 transition-colors shadow-md">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-base sm:text-lg font-bold text-blue-300 flex items-center gap-2">
+                                    <i class="fa-solid fa-briefcase text-blue-400 text-xl"></i> 직업 / 학업운
+                                </span>
+                                <span id="careerStars" class="text-base sm:text-lg text-gold font-bold">★★★★★</span>
+                            </div>
+                            <p id="careerText" class="text-sm sm:text-base text-gray-200 leading-relaxed font-normal">
+                                직업 및 학업운 상세 내용이 들어가는 곳입니다.
+                            </p>
+                        </div>
+
+                        <!-- Health -->
+                        <div class="bg-burgundy-900/90 p-6 rounded-2xl border border-emerald-500/30 hover:border-emerald-400 transition-colors shadow-md">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-base sm:text-lg font-bold text-emerald-300 flex items-center gap-2">
+                                    <i class="fa-solid fa-leaf text-emerald-400 text-xl"></i> 건강운
+                                </span>
+                                <span id="healthStars" class="text-base sm:text-lg text-gold font-bold">★★☆☆☆</span>
+                            </div>
+                            <p id="healthText" class="text-sm sm:text-base text-gray-200 leading-relaxed font-normal">
+                                건강운 상세 내용이 들어가는 곳입니다.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 4. Lucky Element Highlights Bar -->
+                    <div class="mt-8 pt-6 border-t border-gold/20">
+                        <h4 class="text-xs uppercase tracking-widest text-gold/70 text-center mb-4">Today's Lucky Elements</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                            
+                            <div class="bg-burgundy-800/80 border border-gold/30 rounded-2xl p-4 shadow-sm">
+                                <i class="fa-solid fa-palette text-gold text-lg mb-1 block"></i>
+                                <span class="text-xs text-gold/70 block mb-1 font-medium">행운의 컬러</span>
+                                <span id="luckyColor" class="text-base sm:text-lg font-bold text-gold-light">골드</span>
+                            </div>
+
+                            <div class="bg-burgundy-800/80 border border-gold/30 rounded-2xl p-4 shadow-sm">
+                                <i class="fa-solid fa-clover text-gold text-lg mb-1 block"></i>
+                                <span class="text-xs text-gold/70 block mb-1 font-medium">행운의 숫자</span>
+                                <span id="luckyNumber" class="text-base sm:text-lg font-bold text-gold-light">7</span>
+                            </div>
+
+                            <div class="bg-burgundy-800/80 border border-gold/30 rounded-2xl p-4 shadow-sm">
+                                <i class="fa-solid fa-gem text-gold text-lg mb-1 block"></i>
+                                <span class="text-xs text-gold/70 block mb-1 font-medium">행운의 아이템</span>
+                                <span id="luckyItem" class="text-base sm:text-lg font-bold text-gold-light">시계</span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-xs text-gold/40">
+            <p>© Celestial Fortune Oracle. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-20 opacity-0 bg-gold text-burgundy-900 px-6 py-3 rounded-full text-sm font-bold shadow-xl transition-all duration-300 z-50 flex items-center space-x-2">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toastMessage">운세 결과가 복사되었습니다!</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // 1. Generate Starry Sky Effect
+        function createStars() {
+            const starsContainer = document.getElementById('starsContainer');
+            const starCount = 70;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                const size = Math.random() * 3 + 1;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.setProperty('--duration', `${Math.random() * 3 + 2}s`);
+                star.style.animationDelay = `${Math.random() * 3}s`;
+                
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // 2. Zodiac Sign Data
+        const zodiacSigns = [
+            { id: 'aries', name: '양자리', date: '03.21 - 04.19', icon: 'fa-gemini' },
+            { id: 'taurus', name: '황소자리', date: '04.20 - 05.20', icon: 'fa-shield-halved' },
+            { id: 'gemini', name: '쌍둥이자리', date: '05.21 - 06.21', icon: 'fa-masks-theater' },
+            { id: 'cancer', name: '게자리', date: '06.22 - 07.22', icon: 'fa-water' },
+            { id: 'leo', name: '사자자리', date: '07.23 - 08.22', icon: 'fa-crown' },
+            { id: 'virgo', name: '처녀자리', date: '08.23 - 09.22', icon: 'fa-feather-pointed' },
+            { id: 'libra', name: '천칭자리', date: '09.23 - 10.23', icon: 'fa-scale-balanced' },
+            { id: 'scorpio', name: '전갈자리', date: '10.24 - 11.22', icon: 'fa-dragon' },
+            { id: 'sagittarius', name: '사수자리', date: '11.23 - 12.21', icon: 'fa-location-arrow' },
+            { id: 'capricorn', name: '염소자리', date: '12.22 - 01.19', icon: 'fa-mountain' },
+            { id: 'aquarius', name: '물병자리', date: '01.20 - 02.18', icon: 'fa-glass-water' },
+            { id: 'pisces', name: '물고기자리', date: '02.19 - 03.20', icon: 'fa-fish' }
+        ];
+
+        // Seeded Random Generator for Consistent Daily Results
+        function seededRandom(seed) {
+            const x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        }
+
+        // Fortune Text Pools
+        const fortunePools = {
+            advice: [
+                "작은 변화가 뜻밖의 큰 기회로 이어질 수 있는 귀한 날입니다.",
+                "스스로를 깊이 믿고 소신 있게 밀고 나가는 강한 용기가 필요합니다.",
+                "서두르지 말고 잠시 숨을 고르며 주변의 소중한 사람들을 돌아보세요.",
+                "오늘 주고받는 대화 속에서 인생의 중요한 힌트를 얻게 됩니다.",
+                "새로운 무리한 도전보다는 현재 가진 것을 단단하게 정비할 때입니다.",
+                "주변 귀인의 뜻밖의 도움으로 오랫동안 꼬여있던 문제가 시원하게 풀립니다.",
+                "긍정적이고 여유로운 마음가짐이 최고의 호운을 끌어당기는 열쇠입니다.",
+                "지나친 기우나 걱정보다는 일단 담대하게 행동으로 옮겨보세요."
+            ],
+            love: [
+                "상대방의 작은 배려에 표현을 많이 해주세요. 애정이 훨씬 더 깊어집니다.",
+                "솔로라면 평소 가보지 않은 뜻밖의 장소에서 매력적인 인연을 만날 수 있습니다.",
+                "서로 대화가 부족하면 작은 오해가 커질 수 있으니 솔직하고 담백하게 대화하세요.",
+                "연인과의 관계가 한층 더 깊어지고 서로를 향한 신뢰가 돈독해지는 따뜻한 날입니다.",
+                "감정에 휩쓸리기보다는 이성적이고 차분한 시각으로 바라보는 지혜가 필요합니다."
+            ],
+            money: [
+                "생각지 못한 작은 지출이 생길 수 있으니 계획적인 소비 습관이 필요합니다.",
+                "금전운이 강한 상승 곡선을 타고 있어 재테크나 투자 검토에 유리한 하루입니다.",
+                "지름신이나 충동구매를 멀리하고 실속 있는 지출을 우선시하세요.",
+                "오랫동안 기다리던 반가운 재물 소식이나 예상치 못한 이익이 찾아올 수 있습니다.",
+                "남들의 감언이설에 현혹되지 말고 자신의 명확한 소신대로 판단하세요."
+            ],
+            career: [
+                "묵묵히 쌓아온 당신의 성실함과 노력이 드디어 주변 사람들에게 크게 인정받습니다.",
+                "집중력이 평소보다 크게 높아져 어려운 과제나 업무도 순식간에 해결할 수 있습니다.",
+                "동료들과의 활발한 소통과 협력이 오늘 큰 성공의 중요한 열쇠가 됩니다.",
+                "창의적인 아이디어가 샘솟는 하루이니 떠오르는 생각을 꼭 기록해 두세요.",
+                "신중하고 차분하게 준비해 나간다면 바라던 최상의 결과를 얻게 됩니다."
+            ],
+            health: [
+                "충분한 휴식과 수분 섭취를 통해 지친 몸과 마음의 에너지를 만충하세요.",
+                "가벼운 야외 산책이나 스트레칭이 신체 컨디션과 기분 전환에 큰 도움이 됩니다.",
+                "무의미한 스트레스나 과로를 피하고 편안한 마음의 여유를 가져야 하는 때입니다.",
+                "컨디션과 생기가 넘쳐흘러 하루 종일 활력 있고 건강한 에너지를 유지합니다.",
+                "자극적인 음식을 피하고 영양가 높은 규칙적인 식사를 챙겨 드세요."
+            ],
+            colors: ["버건디 Red", "클래식 Gold", "딥 딥네이비", "에메랄드 Green", "크림 White", "로즈 Gold", "라벤더 Violet", "차콜 Gray"],
+            items: ["만년필", "손거울", "따뜻한 허브티", "가죽 다이어리", "시그니처 향수", "아로마 오일", "골드 액세서리", "텀블러"]
+        };
+
+        // Generate Fortune Data for specific sign & today's date
+        function generateFortune(zodiacId) {
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}`;
+            
+            let seed = 0;
+            const str = zodiacId + dateStr;
+            for (let i = 0; i < str.length; i++) {
+                seed += str.charCodeAt(i);
+            }
+
+            const getRandInt = (max) => Math.floor(seededRandom(seed++) * max);
+            const getStars = (min = 1, max = 5) => Math.floor(seededRandom(seed++) * (max - min + 1)) + min;
+            const formatStars = (num) => '★'.repeat(num) + '☆'.repeat(5 - num);
+
+            const overall = getStars(3, 5);
+            const ratingTexts = { 5: "최상의 대길운", 4: "매우 매끄러운 운세", 3: "평온하고 안정적인 하루" };
+
+            return {
+                overallRating: overall,
+                ratingText: ratingTexts[overall] || "평온한 하루",
+                advice: fortunePools.advice[getRandInt(fortunePools.advice.length)],
+                love: {
+                    rating: getStars(2, 5),
+                    text: fortunePools.love[getRandInt(fortunePools.love.length)]
+                },
+                money: {
+                    rating: getStars(2, 5),
+                    text: fortunePools.money[getRandInt(fortunePools.money.length)]
+                },
+                career: {
+                    rating: getStars(2, 5),
+                    text: fortunePools.career[getRandInt(fortunePools.career.length)]
+                },
+                health: {
+                    rating: getStars(2, 5),
+                    text: fortunePools.health[getRandInt(fortunePools.health.length)]
+                },
+                luckyColor: fortunePools.colors[getRandInt(fortunePools.colors.length)],
+                luckyNumber: getRandInt(99) + 1,
+                luckyItem: fortunePools.items[getRandInt(fortunePools.items.length)],
+                formatStars: formatStars
+            };
+        }
+
+        let currentSelectedSign = null;
+
+        // Render Zodiac Selection Grid
+        function renderZodiacGrid() {
+            const gridContainer = document.querySelector('#selectionSection > div.grid');
+            gridContainer.innerHTML = '';
+
+            zodiacSigns.forEach(sign => {
+                const card = document.createElement('div');
+                card.className = `bg-gradient-to-b from-burgundy-800 to-burgundy-900 border border-gold/30 hover:border-gold rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-gold/10 group`;
+                
+                card.innerHTML = `
+                    <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-burgundy-700/60 border border-gold/30 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:border-gold transition-all shadow-md">
+                        <i class="fa-solid ${sign.icon} text-2xl sm:text-3xl text-gold"></i>
+                    </div>
+                    <h3 class="font-serif font-bold text-base sm:text-lg text-gold-light group-hover:text-gold transition-colors">${sign.name}</h3>
+                    <span class="text-xs text-gold/60 mt-1 font-medium">${sign.date}</span>
+                `;
+
+                card.addEventListener('click', () => selectZodiac(sign));
+                gridContainer.appendChild(card);
+            });
+        }
+
+        // Handle Zodiac Selection
+        function selectZodiac(sign) {
+            currentSelectedSign = sign;
+            const fortune = generateFortune(sign.id);
+
+            // Populate Main Result Data
+            document.getElementById('resultZodiacIcon').className = `fa-solid ${sign.icon} text-5xl sm:text-6xl text-gold`;
+            document.getElementById('resultZodiacName').textContent = sign.name;
+            document.getElementById('resultZodiacDate').textContent = sign.date;
+
+            document.getElementById('overallStars').textContent = fortune.formatStars(fortune.overallRating);
+            document.getElementById('overallRatingText').textContent = fortune.ratingText;
+            document.getElementById('oneLineAdvice').textContent = `"${fortune.advice}"`;
+
+            document.getElementById('loveStars').textContent = fortune.formatStars(fortune.love.rating);
+            document.getElementById('loveText').textContent = fortune.love.text;
+
+            document.getElementById('moneyStars').textContent = fortune.formatStars(fortune.money.rating);
+            document.getElementById('moneyText').textContent = fortune.money.text;
+
+            document.getElementById('careerStars').textContent = fortune.formatStars(fortune.career.rating);
+            document.getElementById('careerText').textContent = fortune.career.text;
+
+            document.getElementById('healthStars').textContent = fortune.formatStars(fortune.health.rating);
+            document.getElementById('healthText').textContent = fortune.health.text;
+
+            document.getElementById('luckyColor').textContent = fortune.luckyColor;
+            document.getElementById('luckyNumber').textContent = fortune.luckyNumber;
+            document.getElementById('luckyItem').textContent = fortune.luckyItem;
+
+            // Switch Sections
+            const selectionSection = document.getElementById('selectionSection');
+            const resultSection = document.getElementById('resultSection');
+
+            selectionSection.classList.add('opacity-0');
+            setTimeout(() => {
+                selectionSection.classList.add('hidden');
+                resultSection.classList.remove('hidden');
+                resultSection.classList.add('flex');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                setTimeout(() => {
+                    resultSection.classList.remove('opacity-0');
+                }, 50);
+            }, 300);
+        }
+
+        // Display Toast Message
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            toastMessage.textContent = msg;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            // Back Button
+            document.getElementById('backBtn').addEventListener('click', () => {
+                const selectionSection = document.getElementById('selectionSection');
+                const resultSection = document.getElementById('resultSection');
+
+                resultSection.classList.add('opacity-0');
+                setTimeout(() => {
+                    resultSection.classList.add('hidden');
+                    resultSection.classList.remove('flex');
+                    selectionSection.classList.remove('hidden');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    
+                    setTimeout(() => {
+                        selectionSection.classList.remove('opacity-0');
+                    }, 50);
+                }, 300);
+            });
+
+            // Share / Copy Fortune Button
+            document.getElementById('shareBtn').addEventListener('click', () => {
+                if (!currentSelectedSign) return;
+                const advice = document.getElementById('oneLineAdvice').textContent;
+                const stars = document.getElementById('overallStars').textContent;
+                const shareText = `[오늘의 별자리 운세 - ${currentSelectedSign.name}]\n총운: ${stars}\n조언: ${advice}\n\n오늘의 운세를 직접 확인해보세요!`;
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        showToast('운세 결과가 클립보드에 복사되었습니다!');
+                    }).catch(() => {
+                        fallbackCopy(shareText);
+                    });
+                } else {
+                    fallbackCopy(shareText);
+                }
+            });
+        }
+
+        // Fallback Copy Function
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('운세 결과가 복사되었습니다!');
+            } catch (err) {
+                showToast('복사에 실패했습니다.');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // Format Date Header
+        function setCurrentDateDisplay() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
+            const dayOfWeek = daysOfWeek[today.getDay()];
+
+            document.getElementById('currentDateText').textContent = `${year}년 ${month}월 ${day}일 (${dayOfWeek})`;
+        }
+
+        // On Load Initialization
+        window.onload = function() {
+            createStars();
+            setCurrentDateDisplay();
+            renderZodiacGrid();
+            setupEventListeners();
+        };
+    </script>
+</body>
+</html>
